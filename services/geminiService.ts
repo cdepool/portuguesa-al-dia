@@ -13,17 +13,22 @@ Responde preguntas cortas, profesionales y enfocadas en mejorar el rendimiento y
 `;
 
 export async function askConsultant(question: string): Promise<string> {
-  const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+  const apiKey = import.meta.env.VITE_API_KEY;
+  if (!apiKey) {
+    console.warn("VITE_API_KEY is not defined. AI Consultant will be disabled.");
+    return "El consultor AI no está configurado (falta API Key).";
+  }
+
+  const ai = new GoogleGenAI(apiKey);
   try {
-    const response = await ai.models.generateContent({
-      model: 'gemini-3-flash-preview',
-      contents: question,
-      config: {
-        systemInstruction: REPORT_CONTEXT,
-        temperature: 0.7,
-      },
+    const model = ai.getGenerativeModel({
+      model: "gemini-1.5-flash",
+      systemInstruction: REPORT_CONTEXT,
     });
-    return response.text || "Lo siento, no pude procesar tu consulta en este momento.";
+
+    const result = await model.generateContent(question);
+    const response = await result.response;
+    return response.text() || "Lo siento, no pude procesar tu consulta en este momento.";
   } catch (error) {
     console.error("Gemini API Error:", error);
     return "Error al conectar con el consultor AI.";
